@@ -1,17 +1,32 @@
 import logo from './logo.svg';
 import './App.css';
-import { Button, Table,Modal, InputNumber, Typography } from 'antd';
+import {  Table,Modal, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import Firebase from './firebaseconfig';
 import Item from 'antd/lib/list/Item';
 import Lottie from 'react-lottie-player'
 import Animation from './asset/119362-pendulum-loading.json'
+import moment from 'moment';
 
+import { CopyOutlined } from '@ant-design/icons';
+import {
+  AutoComplete,
+  Button,
+  Cascader,
+  Col,
+  DatePicker,
+  Input,
+  InputNumber,
+  Row,
+  Select,
+  Tooltip,
+} from 'antd';
 
 
 function App() {
 
-  const { Title } = Typography;
+  const { Title, Text } = Typography;
+  
   const [addModal, showAddModal]= useState(false)
   const [pair, setPair]= useState([{name:"", num:0}, {name:"", num:0}, {name:"", num:0},{name:"", num:0}])
   const [shuffleModal, showShuffleModal]= useState(false)
@@ -23,6 +38,12 @@ function App() {
   const [tableData, setTableData]= useState([])
   const [data, setData]= useState(0)
   const [update, setUpdate]= useState(false)
+  const [date, setDate]= useState(new Date)
+  const [info, setInfo]= useState({})
+  const [updatedLastBy, setUpdatedLastBy]= useState("")
+  const { Option } = Select;
+
+
   
   const columns = [
     {
@@ -68,6 +89,8 @@ useEffect(()=>{
         saveFirebaseTodos.push(doc.data());
       });
       setData(saveFirebaseTodos[0].data);
+    
+      setInfo({last_updated:saveFirebaseTodos[0].last_updated, updated_by:saveFirebaseTodos[0].updated_by})
      let  table=[]
       saveFirebaseTodos[0].data?.sort((a,b)=>b.first - a.first)?.map((item)=>{table.push(
         {
@@ -128,7 +151,7 @@ if(tega){  if(tegaPosition===1){
   }
   if(najib){
     if(najibPosition===1){
-      najib[0].points = najib[0].points+1; najib[0].first = najib[0].first++;
+      najib[0].points = najib[0].points+3; najib[0].first = najib[0].first++;
    }
    else if(najibPosition===2){
     najib[0].second=najib[0].second+1 ;najib[0].points= najib[0].points+2;
@@ -157,12 +180,14 @@ if(tega){  if(tegaPosition===1){
    newArr.push(samad[0])
 
   }
- console.log(newArr)
 
+ const payload ={
+  last_updated:moment(date).format("Do of MMMM'YY hh:mm a"),
+  updated_by:updatedLastBy,
+  data:[...newArr]
+ }
 
- Firebase.firestore().collection("leagues").doc("xRUDjIlIoEuRvw3ISKrb").set({
- data:[...newArr]
-})
+ Firebase.firestore().collection("leagues").doc("xRUDjIlIoEuRvw3ISKrb").set(payload)
 .then(() => {
 setNajibPosition(0);
 setTegaPosition(0);
@@ -200,15 +225,19 @@ setPair(pairs.sort((a,b)=>b.num-a.num))
   <div className='flex justify-end my-6'>
       <Button onClick={()=>shuffleFunc()} className="mx-2"  >Shuffle</Button>
       <Button type="primary" onClick={()=>showAddModal(true)} className="mx-2" >Add points</Button>
-
       </div>
     
 
-     <Table dataSource={tableData} columns={columns} />;
+     <Table dataSource={tableData} columns={columns} />
+     
+     <Text><span className='font-medium text-base '>Update last by  </span>{info.updated_by}</Text>
+      <br/>
+     <Text><span className='font-medium text-base '>Updated at  </span> {info.last_updated}</Text>
      <Modal
         title="Update League table"
         centered
         open={addModal}
+        
         onOk={() => updateLeague() }
         onCancel={() => {showAddModal(false);
         setNajibPosition(0);
@@ -217,11 +246,27 @@ setPair(pairs.sort((a,b)=>b.num-a.num))
     setTegaPosition(0)}}
       >
          {/* <div className='flex '> <Title className='' level={5}>Position</Title>  <Title className='ml-3' level={5}>Name</Title> </div>  */}
-     <div className='flex my-2'><InputNumber value={samadPosition} onChange={(e)=> setSamadPosition(e)} min={1} max={4} />  <Title className='ml-4' level={5}>Samad</Title> </div> 
+  <div className='flex justify-between'>
+    <div>
+    <div className='flex my-2'><InputNumber value={samadPosition} onChange={(e)=> setSamadPosition(e)} min={1} max={4} />  <Title className='ml-4' level={5}>Samad</Title> </div> 
       <div  className='flex my-2'><InputNumber value={ridwanPosition} onChange={(e)=> setRidwanPosition(e)} min={1} max={4} />  <Title  className='ml-4' level={5}>Ridwan</Title> </div>
      <div className="flex my-2" > <InputNumber value={najibPosition} onChange={(e)=> setNajibPosition(e)} min={1} max={4}/>  <Title  className='ml-4' level={5}>Najib</Title> </div>
      <div className='flex my-2'><InputNumber value={tegaPosition} onChange={(e)=> setTegaPosition(e)} min={1} max={4}/>  <Title  className='ml-4' level={5}>Tega</Title> </div> 
-     
+    </div>
+    <div>
+    <Text className='mb-3'>Who is updating ?</Text>
+    <Input.Group compact>
+      <Select defaultValue="Who?" onChange={(e)=>{ setUpdatedLastBy(e)}}>
+        <Option value="Samad">Samad</Option>
+        <Option value="Tega">Tega</Option>
+        <Option value="Ridwan">Ridwan</Option>
+        <Option value="Najib">Najib</Option>
+      </Select>
+    </Input.Group>
+    </div>
+    </div>  
+
+    
       </Modal>
       <Modal
         title="Picking Slot"
@@ -246,3 +291,4 @@ setPair(pairs.sort((a,b)=>b.num-a.num))
 }
 
 export default App;
+
